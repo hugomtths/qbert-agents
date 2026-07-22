@@ -1,38 +1,28 @@
 from ambiente.qbert_env import QbertEnv
 from agentes.busca_heuristica import AgenteBuscaHeuristica
-import time
+import interface # Importando a nossa tela do Pygame
 
 def principal():
+    print("=== BEM-VINDO AO Q*BERT AI ===")
+    print("1. Busca Heurística (A*)")
+    print("2. Q-Learning (Em breve)")
+    print("3. Aleatório/Outro (Em breve)")
+    
+    escolha = input("\nEscolha qual agente vai jogar (1/2/3): ")
+    
     env = QbertEnv(niveis=6)
-    agente = AgenteBuscaHeuristica()
-
-    posicao_atual = env.reset()
-    jogo_rodando = True
-    passos = 0
-
-    print(f"=== INICIANDO Q*BERT (Busca Heurística) ===")
-    print(f"Posição inicial: {posicao_atual}")
-
-    while jogo_rodando:
-        time.sleep(0.5)
-
-        acao = agente.obter_acao(env.estado_blocos, posicao_atual, env.grafo)
-
-        if acao is None:
-            print("\nNenhum caminho encontrado ou objetivo já atingido.")
-            break
+    env.reset() # Inicializa o ambiente
+    
+    # Seleção de Agentes
+    if escolha == '1':
+        agente = AgenteBuscaHeuristica()
+        print("\nIniciando Busca Heurística...")
+    else:
+        print("\nOpção inválida ou não implementada. Usando Busca Heurística por padrão.")
+        agente = AgenteBuscaHeuristica()
         
-        posicao_atual, recompensa, vitoria = env.step(acao)
-        passos += 1
-
-        print(f"Passo {passos} | Ação: {acao} | Posição: {posicao_atual} | Recompensa: {recompensa}")
-
-        if vitoria:
-            print(f"\nVITÓRIA! Pirâmide totalmente pintada em {passos} passos.")
-            jogo_rodando = False
-        elif recompensa == -10:
-            print(f"\nGAME OVER! O agente pulou para fora do mapa.")
-            jogo_rodando = False
+    # Passamos o controle para a interface gráfica
+    interface.rodar(env, agente)
 
 if __name__ == "__main__":
     principal()
