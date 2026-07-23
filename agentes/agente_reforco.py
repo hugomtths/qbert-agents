@@ -6,11 +6,11 @@ class AgenteReforco:
 
     def __init__(
         self,
-        alpha=0.2,
-        gamma=0.95,
-        epsilon=1.0,
-        epsilon_min=0.01,
-        epsilon_decay=0.9995,
+        alpha=0.2,            # Taxa de aprendizado (↑ aprende mais rápido, ↓ aprende mais lentamente)
+        gamma=0.95,           # Importância das recompensas futuras (↑ mais visão de longo prazo, ↓ prioriza recompensas imediatas)
+        epsilon=1.0,          # Probabilidade inicial de explorar ações aleatórias (↑ mais exploração no início)
+        epsilon_min=0.01,     # Valor mínimo de exploração (↑ continua explorando mais, ↓ torna-se mais "ganancioso")
+        epsilon_decay=0.9995, # Velocidade de redução do epsilon (↑ reduz mais lentamente, ↓ reduz mais rapidamente)
     ):
 
         self.alpha = alpha
