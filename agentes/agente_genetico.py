@@ -112,10 +112,6 @@ class AgenteGenetico:
                 print("\nPRIMEIRA VITÓRIA ALCANÇADA! Continuando o treino para otimizar os passos...")
                 self._ja_avisou_vitoria = True
 
-            if melhor_individuo_geral.fitness >= 240000:
-                print(f"\nÓTIMO GLOBAL ENCONTRADO NA GERAÇÃO {geracao}!")
-                break
-
             nova_populacao = []
 
             for i in range(min(5, len(self.populacao))):
