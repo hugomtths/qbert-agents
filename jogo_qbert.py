@@ -20,6 +20,27 @@ def desenhar_texto(texto, font, cor, x, y, centralizado=True):
         x -= img.get_width() // 2
     tela.blit(img, (x, y))
 
+def animar_fade_texto(texto, font, cor, y, fade_in=True, velocidade=15):
+    """
+    Executa uma animação rápida de fade in ou fade out para um texto centralizado.
+    """
+    alpha_inicio = 0 if fade_in else 255
+    alpha_fim = 255 if fade_in else 0
+    passo = velocidade if fade_in else -velocidade
+
+    for alpha in range(alpha_inicio, alpha_fim + (1 if fade_in else -1), passo):
+        pygame.event.pump()
+        tela.fill((20, 20, 30))
+        
+        img = font.render(texto, True, cor)
+        img.set_alpha(max(0, min(255, alpha)))
+        
+        x = (LARGURA - img.get_width()) // 2
+        tela.blit(img, (x, y))
+        
+        pygame.display.flip()
+        pygame.time.delay(15)
+
 def rodar_menu():
     """
     Exibe a tela inicial de menu e retorna as escolhas do usuário.
@@ -81,18 +102,45 @@ def carregar_agente(escolha, env):
     """
     if escolha == "1":
         print("\nCarregando Busca Heurística (A*)...")
-        return AgenteBuscaHeuristica()
+        agente_a = AgenteBuscaHeuristica()
+        
+        # Se for no modo estático, pré-calculamos a rota toda com tela de loading
+        if not env.com_inimigos:
+            animar_fade_texto("Calculando Melhor Rota...", fonte_titulo, (0, 255, 0), ALTURA // 2, fade_in=True)
+            
+            print("Pré-calculando rota do A* em background...")
+            env_sim = QbertEnv(niveis=env.niveis, com_inimigos=False)
+            env_sim.reset()
+            rota_calculada = []
+            
+            # Roda o A* em loop até zerar a pirâmide na simulação
+            while True:
+                acao = agente_a.obter_acao(env_sim.estado_blocos, env_sim.posicao_agente, env_sim.grafo)
+                if not acao: break
+                rota_calculada.append(acao)
+                _, _, vitoria = env_sim.step(acao)
+                if vitoria: break
+            
+            # Salva a rota no agente para ser lida sequencialmente na tela
+            agente_a.cromossomo = rota_calculada
+            print(f"Rota de {len(rota_calculada)} passos calculada com sucesso!")
+
+            animar_fade_texto("Calculando Melhor Rota...", fonte_titulo, (0, 255, 0), ALTURA // 2, fade_in=False)
+            
+        return agente_a
         
     elif escolha == "2":
         print("\nEvoluindo população com Algoritmo Genético...")
         
-        # Exibe mensagem de carregamento na tela do Pygame
-        tela.fill((20, 20, 30))
-        desenhar_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), LARGURA // 2, ALTURA // 2)
-        pygame.display.flip()
+        animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=True)
         
-        agente_gen = AgenteGenetico(tamanho_populacao=150, taxa_mutacao=0.05, tamanho_cromossomo=65)
-        melhor_individuo = agente_gen.treinar(env, num_geracoes=1000)
+        # Cria um ambiente 100% estático apenas para o treino não acordar a Coily
+        env_treino = QbertEnv(niveis=env.niveis, com_inimigos=False)
+        
+        agente_gen = AgenteGenetico(tamanho_populacao=150, taxa_mutacao=0.05, tamanho_cromossomo=40)
+        melhor_individuo = agente_gen.treinar(env_treino, num_geracoes=1000) # Usa o env_treino aqui
+
+        animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=False)
         
         return melhor_individuo
         
@@ -146,6 +194,18 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             'cima_dir':  pygame.image.load("sprites/qbert/qbert-costas-direita.png").convert_alpha()
         }
 
+        # Carrega os sprites da Coily (Ovo e Cobra)
+        sprites_coily_ovo = [
+            pygame.image.load("sprites/personagens/bola-roxa-2.png").convert_alpha(),  # Redonda
+            pygame.image.load("sprites/personagens/bola-roxa-1.png").convert_alpha()   # Achatada
+        ]
+        
+        sprites_coily_cobra = [
+            pygame.image.load("sprites/personagens/cobra-roxa-1.png").convert_alpha(),
+            pygame.image.load("sprites/personagens/cobra-roxa-2.png").convert_alpha(),
+            pygame.image.load("sprites/personagens/cobra-roxa-3.png").convert_alpha()
+        ]
+
         mult_x, mult_y = 1.4, 1
         nova_largura = int(img_bloco_dir_fase1.get_width() * mult_x)
         nova_altura = int(img_bloco_dir_fase1.get_height() * mult_y)
@@ -164,7 +224,7 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
     posicao_atual = env.reset()
     linha_agente, coluna_agente = posicao_atual
     
-    TEMPO_POR_PASSO = 500
+    TEMPO_POR_PASSO = 800
     ultimo_passo = pygame.time.get_ticks()
     
     # Índice para ler a lista de comandos caso o agente seja o Genético
@@ -184,12 +244,12 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             ultimo_passo = tempo_atual
             acao = None
 
-            # 1. Escolhe como pegar a ação dependendo do tipo de agente
-            if escolha_agente == "2":  # Algoritmo Genético (Lista de Cromossomos)
+            # 1. Escolhe como pegar a ação, se o agente tiver uma lista pré-calculada (Genético ou A* Estático), lê da lista
+            if hasattr(agente, 'cromossomo'):
                 if passo_genetico < len(agente.cromossomo):
                     acao = agente.cromossomo[passo_genetico]
                     passo_genetico += 1
-            else:  # A* ou Q-Learning (Método interativo obter_acao)
+            else:  # A* Dinâmico (com inimigos ativos) calcula em tempo real
                 acao = agente.obter_acao(env.estado_blocos, env.posicao_agente, env.grafo)
 
             # 2. Executa a ação no ambiente se ela existir
@@ -253,6 +313,28 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
         
         tela.blit(img_agente_atual, (x_agente, y_agente))
 
+        # Desenha a Cobra Coily
+        if com_inimigos and hasattr(env, 'coily') and env.coily.ativa and env.posicao_coily:
+            linha_coily, coluna_coily = env.posicao_coily
+            
+            # 1. Escolhe o sprite com base no estado e alterna o frame usando os passos totais
+            if env.coily.estado == "OVO":
+                frame_idx = passos_totais % len(sprites_coily_ovo)
+                img_coily_atual = sprites_coily_ovo[frame_idx]
+            else:  # Estado "COBRA"
+                frame_idx = passos_totais % len(sprites_coily_cobra)
+                img_coily_atual = sprites_coily_cobra[frame_idx]
+            
+            # 2. Calcula a posição isométrica (exatamente com a mesma matemática do Q*bert)
+            x_base_coily = x_topo + (coluna_coily * ESPACAMENTO_X) - (linha_coily * (ESPACAMENTO_X // 2))
+            y_base_coily = y_topo + (linha_coily * ESPACAMENTO_Y)
+            
+            # 3. Centraliza o sprite no bloco
+            x_coily = x_base_coily + (larg_bloco // 2) - (img_coily_atual.get_width() // 2)
+            y_coily = y_base_coily - img_coily_atual.get_height() + (ESPACAMENTO_Y // 2) - 15
+            
+            tela.blit(img_coily_atual, (x_coily, y_coily))
+
         pygame.display.flip()
         relogio.tick(30)
 
@@ -306,7 +388,7 @@ if __name__ == "__main__":
         print(f"\nConfiguração selecionada -> Agente: [{escolha_agente}] | Inimigos: {modo_inimigos}")
         
         # 2. Cria o ambiente
-        env = QbertEnv(niveis=6)
+        env = QbertEnv(niveis=6, com_inimigos=modo_inimigos)
         
         # 3. Carrega (ou treina) o agente na memória
         agente_carregado = carregar_agente(escolha_agente, env)
