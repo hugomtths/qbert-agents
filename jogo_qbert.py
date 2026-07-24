@@ -260,6 +260,8 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             'cima_dir':  pygame.image.load("sprites/qbert/qbert-costas-direita.png").convert_alpha()
         }
 
+        img_hit = pygame.image.load("sprites/qbert/hit.png").convert_alpha()
+
         # Carrega os sprites da Coily (Ovo e Cobra)
         sprites_coily_ovo = [
             pygame.image.load("sprites/personagens/bola-roxa-2.png").convert_alpha(),  # Redonda
@@ -415,6 +417,13 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
         # Seleciona o sprite correto de acordo com a última direção
         img_agente_atual = sprites_qbert.get(ultima_acao, sprites_qbert['baixo_esq'])
 
+        colisao_com_cobra = (fim_de_jogo == "derrota" and com_inimigos)
+
+        if colisao_com_cobra:
+            img_agente_atual = img_hit
+        else:
+            img_agente_atual = sprites_qbert.get(ultima_acao, sprites_qbert['baixo_esq'])
+
         # Desenha o Q*bert na posição atual
         larg_bloco = img_bloco_dir_fase1.get_width()
         x_base_bloco = x_topo + (coluna_agente * ESPACAMENTO_X) - (linha_agente * (ESPACAMENTO_X // 2))
@@ -428,7 +437,7 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
 
 
         # Desenha a Cobra Coily
-        if com_inimigos and hasattr(env, 'coily') and env.coily.ativa and env.posicao_coily:
+        if not colisao_com_cobra and com_inimigos and hasattr(env, 'coily') and env.coily.ativa and env.posicao_coily:
             linha_coily, coluna_coily = env.posicao_coily
 
             # Inicia o contador somente quando a cobra surgir
