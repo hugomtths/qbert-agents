@@ -201,17 +201,32 @@ def carregar_agente(escolha, env):
 
         return agente
 
+def desenhar_pontuacao(tela, pontuacao, sprites, x, y, espacamento=4):
+    texto = f"{pontuacao:05d}"
+
+    for digito in texto:
+        img = sprites[digito]
+        tela.blit(img, (x, y))
+        x += img.get_width() + espacamento
+
 def rodar_jogo(env, agente, escolha_agente, com_inimigos):
     """
     Controla o loop gráfico do Pygame, animando o agente escolhido na pirâmide.
     """
     try:
+        # Carrega os sprites dos números
+        sprites_numeros = {}
+        for i in range(10):
+            sprites_numeros[str(i)] = pygame.image.load(
+                f"sprites/cenario/numero-{i}.png"
+            ).convert_alpha()
+
         img_bloco_dir_fase1 = pygame.image.load("sprites/cenario/plataforma-direita-fase1.png").convert_alpha()
         img_bloco_esq_fase1 = pygame.image.load("sprites/cenario/plataforma-esquerda-fase1.png").convert_alpha()
         img_bloco_esq_comp = pygame.image.load("sprites/cenario/plataforma-esquerda-fase1-completa.png").convert_alpha()
         img_bloco_dir_comp = pygame.image.load("sprites/cenario/plataforma-direita-fase1-completa.png").convert_alpha()
         img_agente = pygame.image.load("sprites/qbert/qbert-frente-esquerda.png").convert_alpha()
-        
+
 
         # Carrega os sprites do Q*bert para diferentes direções
         sprites_qbert = {
@@ -226,8 +241,9 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             pygame.image.load("sprites/personagens/bola-roxa-2.png").convert_alpha(),  # Redonda
             pygame.image.load("sprites/personagens/bola-roxa-1.png").convert_alpha()   # Achatada
         ]
-        
         sprites_coily_cobra = [
+            pygame.image.load("sprites/personagens/cobra-roxa-3.png").convert_alpha(),
+            pygame.image.load("sprites/personagens/cobra-roxa-2.png").convert_alpha(),
             pygame.image.load("sprites/personagens/cobra-roxa-1.png").convert_alpha(),
             pygame.image.load("sprites/personagens/cobra-roxa-2.png").convert_alpha(),
             pygame.image.load("sprites/personagens/cobra-roxa-3.png").convert_alpha()
@@ -253,6 +269,10 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
     
     TEMPO_POR_PASSO = 800
     ultimo_passo = pygame.time.get_ticks()
+    
+    # Controle da animação da cobra
+    inicio_animacao_cobra = None
+    cobra_apareceu = False
     
     # Índice para ler a lista de comandos caso o agente seja o Genético
     passo_genetico = 0
@@ -369,16 +389,25 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
         
         tela.blit(img_agente_atual, (x_agente, y_agente))
 
+
         # Desenha a Cobra Coily
         if com_inimigos and hasattr(env, 'coily') and env.coily.ativa and env.posicao_coily:
             linha_coily, coluna_coily = env.posicao_coily
+
+            # Inicia o contador somente quando a cobra surgir
+            if not cobra_apareceu:
+                inicio_animacao_cobra = pygame.time.get_ticks()
+                cobra_apareceu = True
             
             # 1. Escolhe o sprite com base no estado e alterna o frame usando os passos totais
             if env.coily.estado == "OVO":
                 frame_idx = passos_totais % len(sprites_coily_ovo)
                 img_coily_atual = sprites_coily_ovo[frame_idx]
             else:  # Estado "COBRA"
-                frame_idx = passos_totais % len(sprites_coily_cobra)
+                # Tempo desde que a cobra apareceu
+                tempo_cobra = pygame.time.get_ticks() - inicio_animacao_cobra
+                # 1600ms dividido em 5 frames = 320ms por frame
+                frame_idx = (tempo_cobra // 320) % len(sprites_coily_cobra)
                 img_coily_atual = sprites_coily_cobra[frame_idx]
             
             # 2. Calcula a posição isométrica (exatamente com a mesma matemática do Q*bert)
@@ -387,9 +416,18 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             
             # 3. Centraliza o sprite no bloco
             x_coily = x_base_coily + (larg_bloco // 2) - (img_coily_atual.get_width() // 2)
-            y_coily = y_base_coily - img_coily_atual.get_height() + (ESPACAMENTO_Y // 2) - 15
+            y_coily = y_base_coily - img_coily_atual.get_height() + (ESPACAMENTO_Y // 2) - 25
             
             tela.blit(img_coily_atual, (x_coily, y_coily))
+
+        # Desenha a pontuação
+        desenhar_pontuacao(
+            tela,
+            env.pontuacao,
+            sprites_numeros,
+            60,
+            45
+        )
 
         pygame.display.flip()
         relogio.tick(30)

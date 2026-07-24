@@ -8,6 +8,7 @@ class QbertEnv:
         self.grafo = {}
         self.estado_blocos = {}
         self._construir_piramide()
+        self.pontuacao = 0
 
     def _construir_piramide(self):
         for linha in range(self.niveis):
@@ -32,17 +33,16 @@ class QbertEnv:
         return vizinhos
     
     def reset(self):
-        for no in self.estado_blocos:
-            self.estado_blocos[no] = 0
-            
         self.posicao_agente = (0, 0)
-
         self.passos_rodada = 0
+        self.pontuacao = 0
 
         self.coily = CobraCoily()
-
         self.coily.ativa = False
         self.posicao_coily = None
+
+        for no in self.estado_blocos:
+            self.estado_blocos[no] = 0
 
         return self.posicao_agente
 
@@ -84,10 +84,12 @@ class QbertEnv:
             if self.estado_blocos[self.posicao_agente] == 0:
                 self.estado_blocos[self.posicao_agente] = 1
                 recompensa = 10
+                self.pontuacao += 25
                 
             vitoria = all(estado == 1 for estado in self.estado_blocos.values())
             if vitoria:
                 recompensa = 100
+                self.pontuacao += 3000
                 
             return self.posicao_agente, recompensa, vitoria
             
