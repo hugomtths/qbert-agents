@@ -249,8 +249,19 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
         img_bloco_esq_fase1 = pygame.image.load("sprites/cenario/plataforma-esquerda-fase1.png").convert_alpha()
         img_bloco_esq_comp = pygame.image.load("sprites/cenario/plataforma-esquerda-fase1-completa.png").convert_alpha()
         img_bloco_dir_comp = pygame.image.load("sprites/cenario/plataforma-direita-fase1-completa.png").convert_alpha()
-        img_agente = pygame.image.load("sprites/qbert/qbert-frente-esquerda.png").convert_alpha()
 
+        sprites_vitoria = [
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo1-esquerda.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo2-esquerda.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo3-esquerda.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo4-esquerda.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo5-esquerda.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo1-direita.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo2-direita.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo3-direita.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo4-direita.png").convert_alpha(),
+            pygame.image.load("sprites/cenario/vitoria/fase1/topo5-direita.png").convert_alpha()
+        ]
 
         # Carrega os sprites do Q*bert para diferentes direções
         sprites_qbert = {
