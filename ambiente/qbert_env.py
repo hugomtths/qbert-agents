@@ -1,5 +1,4 @@
 import random
-from inimigos.bola_verde import BolaVerde
 from inimigos.cobra_coily import CobraCoily
 
 class QbertEnv:
@@ -38,10 +37,6 @@ class QbertEnv:
             
         self.posicao_agente = (0, 0)
 
-        self.bola_verde = BolaVerde()
-        self.bola_verde.ativa = False
-        self.bola_verde.posicao = None
-
         self.passos_rodada = 0
 
         self.coily = CobraCoily()
@@ -62,13 +57,10 @@ class QbertEnv:
             if self.com_inimigos and not self.coily.ativa and self.passos_rodada >= 6:
                 self.coily.ativa = True
                 self.posicao_coily = (0, 0)
-                print("4 segundos se passaram: O ovo da Coily surgiu em (0, 0)!")
             
             # --- COLISÃO 1: Q*bert pulou direto em algum inimigo? ---
             if self.com_inimigos:
                 if self.coily.ativa and self.posicao_agente == self.posicao_coily:
-                    return self.posicao_agente, -100, False
-                if self.bola_verde.ativa and self.posicao_agente == self.bola_verde.posicao:
                     return self.posicao_agente, -100, False
 
             # --- MOVIMENTAÇÃO E SPAWN DOS INIMIGOS ---
@@ -83,18 +75,9 @@ class QbertEnv:
                         acao_coily = self.coily.obter_acao(self.posicao_coily, self.posicao_agente, self.grafo)
                         if acao_coily and acao_coily in self.grafo[self.posicao_coily]:
                             self.posicao_coily = self.grafo[self.posicao_coily][acao_coily]
-                
-                if not self.bola_verde.ativa:
-                    if random.random() < 0:
-                        self.bola_verde.ativa = True
-                        self.bola_verde.posicao = (1, random.choice([0, 1]))
-                else:
-                    self.bola_verde.mover(self.niveis)
 
                 # --- COLISÃO 2: Algum inimigo se moveu e alcançou o Q*bert? ---
                 if self.coily.ativa and self.posicao_agente == self.posicao_coily:
-                    return self.posicao_agente, -100, False
-                if self.bola_verde.ativa and self.posicao_agente == self.bola_verde.posicao:
                     return self.posicao_agente, -100, False
             
             recompensa = -1

@@ -27,7 +27,6 @@ class CobraCoily:
         if self.estado == "OVO":
             if linha_atual >= self.nivel_base:
                 self.estado = "COBRA"
-                print("O ovo roxo chocou! A Coily virou uma COBRA e começou a caçar!")
             else:
                 acoes_possiveis = []
                 vizinhos = grafo[posicao_coily]
