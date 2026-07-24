@@ -287,7 +287,11 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
         print("Erro: Imagens não encontradas na pasta 'sprites/'. Verifique os caminhos.")
         return
 
-    ESPACAMENTO_X, ESPACAMENTO_Y = 94, 58
+    ESPACAMENTO_X, ESPACAMENTO_Y = 102, 58
+
+    OFFSET_ESQ_X = -10
+    OFFSET_DIR_X = 10
+    OFFSET_Y_EXTRA = 3
     
     # Sincroniza posições e temporizador (800ms entre pulos para podermos assistir)
     posicao_atual = env.reset()
@@ -402,15 +406,19 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
         # Desenha os blocos da pirâmide
         for linha in range(6):
             for coluna in range(linha + 1):
-                x_pixel = x_topo + (coluna * ESPACAMENTO_X) - (linha * (ESPACAMENTO_X // 2))
-                y_pixel = y_topo + (linha * ESPACAMENTO_Y)
+                x_base = x_topo + (coluna * ESPACAMENTO_X) - (linha * (ESPACAMENTO_X // 2))
+                y_base = y_topo + (linha * ESPACAMENTO_Y)
 
                 ja_pintado = env.estado_blocos.get((linha, coluna), 0) == 1
                 
                 if coluna <= linha // 2:
                     img_atual = img_bloco_esq_comp if ja_pintado else img_bloco_esq_fase1
+                    x_pixel = x_base + OFFSET_ESQ_X
                 else:
                     img_atual = img_bloco_dir_comp if ja_pintado else img_bloco_dir_fase1
+                    x_pixel = x_base + OFFSET_DIR_X
+
+                y_pixel = y_base + OFFSET_Y_EXTRA
                 
                 tela.blit(img_atual, (x_pixel, y_pixel))
 
@@ -429,12 +437,12 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
         x_base_bloco = x_topo + (coluna_agente * ESPACAMENTO_X) - (linha_agente * (ESPACAMENTO_X // 2))
         y_base_bloco = y_topo + (linha_agente * ESPACAMENTO_Y)
 
+        offset_personagem_x = OFFSET_ESQ_X if coluna_agente <= linha_agente // 2 else OFFSET_DIR_X
 
-        x_agente = x_base_bloco + (larg_bloco // 2) - (img_agente_atual.get_width() // 2)
-        y_agente = y_base_bloco - img_agente_atual.get_height() + (ESPACAMENTO_Y // 2) - 24
+        x_agente = x_base_bloco + (larg_bloco // 2) - (img_agente_atual.get_width() // 2) + offset_personagem_x
+        y_agente = y_base_bloco - img_agente_atual.get_height() + (ESPACAMENTO_Y // 2) - 22 + OFFSET_Y_EXTRA
         
         tela.blit(img_agente_atual, (x_agente, y_agente))
-
 
         # Desenha a Cobra Coily
         if not colisao_com_cobra and com_inimigos and hasattr(env, 'coily') and env.coily.ativa and env.posicao_coily:
@@ -466,15 +474,18 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             # 2. Calcula a posição isométrica (exatamente com a mesma matemática do Q*bert)
             x_base_coily = x_topo + (coluna_coily * ESPACAMENTO_X) - (linha_coily * (ESPACAMENTO_X // 2))
             y_base_coily = y_topo + (linha_coily * ESPACAMENTO_Y)
+
+            offset_coily_x = OFFSET_ESQ_X if coluna_coily <= linha_coily // 2 else OFFSET_DIR_X
             
             # 3. Centraliza o sprite no bloco
-            x_coily = x_base_coily + (larg_bloco // 2) - (img_coily_atual.get_width() // 2)
+            x_coily = x_base_coily + (larg_bloco // 2) - (img_coily_atual.get_width() // 2) + offset_coily_x
             y_coily = (
                 y_base_coily
                 - img_coily_atual.get_height()
                 + (ESPACAMENTO_Y // 2)
                 - 22
                 + deslocamento_ovo
+                + OFFSET_Y_EXTRA
             )
             
             tela.blit(img_coily_atual, (x_coily, y_coily))
