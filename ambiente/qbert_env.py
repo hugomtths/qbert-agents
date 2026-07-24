@@ -63,7 +63,8 @@ class QbertEnv:
             # Coily só aparece após 6 passos, se o jogo estiver com inimigos
             if self.com_inimigos and not self.coily.ativa and self.passos_rodada >= 6:
                 self.coily.ativa = True
-                print("O ovo da Coily surgiu em (0, 0)!")
+                if not getattr(self, 'silencioso', False):
+                    print("O ovo da Coily surgiu em (0, 0)!")
             
             # --- COLISÃO 1: Q*bert pulou direto em algum inimigo? ---
             if self.com_inimigos:

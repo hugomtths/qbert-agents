@@ -4,6 +4,7 @@ from ambiente.qbert_env import QbertEnv
 from agentes.busca_heuristica import AgenteBuscaHeuristica
 from agentes.busca_heuristica_dinamica import AgenteBuscaHeuristicaDinamica
 from agentes.agente_genetico import AgenteGenetico
+from agentes.agente_genetico_dinamico import AgenteGeneticoDinamico
 from agentes.agente_reforco import AgenteReforco
 
 pygame.init()
@@ -136,19 +137,31 @@ def carregar_agente(escolha, env):
         return agente_a
         
     elif escolha == "2":
-        print("\nEvoluindo população com Algoritmo Genético...")
-        
-        animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=True)
-        
-        # Cria um ambiente 100% estático apenas para o treino não acordar a Coily
-        env_treino = QbertEnv(niveis=env.niveis, com_inimigos=False)
-        
-        agente_gen = AgenteGenetico(tamanho_populacao=150, taxa_mutacao=0.05, tamanho_cromossomo=40)
-        melhor_individuo = agente_gen.treinar(env_treino, num_geracoes=1000) # Usa o env_treino aqui
+        if env.com_inimigos:
+            print("\nEvoluindo população contra os Inimigos...")
+            animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=True)
+            
+            env_treino = QbertEnv(niveis=env.niveis, com_inimigos=True)
+            env_treino.silencioso = True 
+            
+            agente_gen = AgenteGeneticoDinamico(tamanho_populacao=100, taxa_mutacao=0.02, tamanho_cromossomo=65)
+            melhor_individuo = agente_gen.treinar(env_treino, num_geracoes=1000)
+            
+            animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=False)
 
-        animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=False)
-        
-        return melhor_individuo
+            return melhor_individuo
+            
+        else:
+            print("\nEvoluindo população com Algoritmo Genético...")
+            animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=True)
+            
+            env_treino = QbertEnv(niveis=env.niveis, com_inimigos=False)
+            agente_gen = AgenteGenetico(tamanho_populacao=150, taxa_mutacao=0.05, tamanho_cromossomo=40)
+            melhor_individuo = agente_gen.treinar(env_treino, num_geracoes=1000)
+            
+            animar_fade_texto("Evoluindo Genética...", fonte_titulo, (0, 255, 255), ALTURA // 2, fade_in=False)
+
+            return melhor_individuo
         
     elif escolha == "3":
         print("\nCarregando agente Q-Learning...")
@@ -253,8 +266,27 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             # 1. Escolhe como pegar a ação, se o agente tiver uma lista pré-calculada (Genético ou A* Estático), lê da lista
             if hasattr(agente, 'cromossomo'):
                 if passo_genetico < len(agente.cromossomo):
-                    acao = agente.cromossomo[passo_genetico]
+                    acao_gene = agente.cromossomo[passo_genetico]
                     passo_genetico += 1
+
+                    if com_inimigos and escolha_agente == "2":
+                        pos_atual = env.posicao_agente
+                        vizinhos_validos = env.grafo.get(pos_atual, {})
+
+                        if acao_gene not in vizinhos_validos:
+                            idx_borda = abs(hash(acao_gene)) % len(vizinhos_validos)
+                            acao = list(vizinhos_validos.keys())[idx_borda]
+                        else:
+                            acao = acao_gene
+
+                        if hasattr(env, 'coily') and env.coily.ativa and env.posicao_coily in vizinhos_validos.values():
+                            saidas_seguras = [act for act, pos in vizinhos_validos.items() if pos != env.posicao_coily]
+                            if saidas_seguras:
+                                idx_fuga = abs(hash(acao)) % len(saidas_seguras)
+                                acao = saidas_seguras[idx_fuga]
+                    else:
+                        acao = acao_gene
+
             else:  # A* Dinâmico (com inimigos ativos) calcula em tempo real
                 if isinstance(agente, AgenteBuscaHeuristicaDinamica):
                     # Passa a posição atual da Coily para o agente conseguir desviar
