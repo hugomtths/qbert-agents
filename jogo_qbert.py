@@ -267,12 +267,17 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
     posicao_atual = env.reset()
     linha_agente, coluna_agente = posicao_atual
     
-    TEMPO_POR_PASSO = 800
+    TEMPO_POR_PASSO = 1000
     ultimo_passo = pygame.time.get_ticks()
     
     # Controle da animação da cobra
     inicio_animacao_cobra = None
-    cobra_apareceu = False
+    coily_apareceu = False
+
+    # Controle da animação do ovo da Coily
+    ultima_posicao_coily = None
+    inicio_ovo = None
+    TEMPO_OVO_ALTO = 600  # tempo flutuando antes de aparecer no chão
     
     # Índice para ler a lista de comandos caso o agente seja o Genético
     passo_genetico = 0
@@ -338,6 +343,11 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
                 nova_posicao, recompensa, vitoria = env.step(acao)
                 linha_agente, coluna_agente = nova_posicao
 
+                if hasattr(env, 'coily') and env.coily.ativa:
+                    if env.posicao_coily != ultima_posicao_coily:
+                        inicio_ovo = pygame.time.get_ticks()
+                        ultima_posicao_coily = env.posicao_coily
+
                 if acao in sprites_qbert:
                     ultima_acao = acao
 
@@ -395,19 +405,26 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             linha_coily, coluna_coily = env.posicao_coily
 
             # Inicia o contador somente quando a cobra surgir
-            if not cobra_apareceu:
+            if not coily_apareceu:
                 inicio_animacao_cobra = pygame.time.get_ticks()
-                cobra_apareceu = True
+                coily_apareceu = True
             
             # 1. Escolhe o sprite com base no estado e alterna o frame usando os passos totais
             if env.coily.estado == "OVO":
-                frame_idx = passos_totais % len(sprites_coily_ovo)
-                img_coily_atual = sprites_coily_ovo[frame_idx]
+                tempo_ovo = pygame.time.get_ticks() - inicio_ovo
+                if tempo_ovo < TEMPO_OVO_ALTO:
+                    # ovo parado flutuando acima da plataforma
+                    img_coily_atual = sprites_coily_ovo[0]
+                    deslocamento_ovo = -30
+                else:
+                    # teleporta para o chão já achatado
+                    img_coily_atual = sprites_coily_ovo[1]
+                    deslocamento_ovo = 0
             else:  # Estado "COBRA"
                 # Tempo desde que a cobra apareceu
                 tempo_cobra = pygame.time.get_ticks() - inicio_animacao_cobra
                 # 1600ms dividido em 5 frames = 320ms por frame
-                frame_idx = (tempo_cobra // 320) % len(sprites_coily_cobra)
+                frame_idx = (tempo_cobra // 400) % len(sprites_coily_cobra)
                 img_coily_atual = sprites_coily_cobra[frame_idx]
             
             # 2. Calcula a posição isométrica (exatamente com a mesma matemática do Q*bert)
@@ -416,7 +433,13 @@ def rodar_jogo(env, agente, escolha_agente, com_inimigos):
             
             # 3. Centraliza o sprite no bloco
             x_coily = x_base_coily + (larg_bloco // 2) - (img_coily_atual.get_width() // 2)
-            y_coily = y_base_coily - img_coily_atual.get_height() + (ESPACAMENTO_Y // 2) - 25
+            y_coily = (
+                y_base_coily
+                - img_coily_atual.get_height()
+                + (ESPACAMENTO_Y // 2)
+                - 22
+                + deslocamento_ovo
+            )
             
             tela.blit(img_coily_atual, (x_coily, y_coily))
 
