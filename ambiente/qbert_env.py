@@ -74,9 +74,15 @@ class QbertEnv:
             # --- MOVIMENTAÇÃO E SPAWN DOS INIMIGOS ---
             if self.com_inimigos:
                 if self.coily.ativa:
-                    acao_coily = self.coily.obter_acao(self.posicao_coily, self.posicao_agente, self.grafo)
-                    if acao_coily and acao_coily in self.grafo[self.posicao_coily]:
-                        self.posicao_coily = self.grafo[self.posicao_coily][acao_coily]
+                    # Se for OVO, move todo turno. Se virou COBRA, move só passo sim, passo não (50% de velocidade) 
+                    deve_mover = True
+                    if hasattr(self.coily, 'estado') and self.coily.estado == "COBRA":
+                        deve_mover = (self.passos_rodada % 2 != 0)
+                    
+                    if deve_mover:
+                        acao_coily = self.coily.obter_acao(self.posicao_coily, self.posicao_agente, self.grafo)
+                        if acao_coily and acao_coily in self.grafo[self.posicao_coily]:
+                            self.posicao_coily = self.grafo[self.posicao_coily][acao_coily]
                 
                 if not self.bola_verde.ativa:
                     if random.random() < 0:
