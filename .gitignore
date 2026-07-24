@@ -13,3 +13,7 @@ __pycache__/
 
 # Variaveis de ambiente
 .env
+
+# Tabelas do Algoritmo de Aprendizado por Reforço (Q-Learning)
+q_table.pkl
+q_table_dinamica.pkl
